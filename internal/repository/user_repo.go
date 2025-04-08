@@ -63,3 +63,49 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (model.User, er
 
 	return user, nil
 }
+
+func (u *userRepository) Update(ctx context.Context, id string, userUpdate model.UserUpdate) (model.User, error) {
+	user, err := u.GetByID(ctx, id)
+	if err != nil {
+		return model.User{}, err
+	}
+	if userUpdate.FirstName != "" {
+		user.FirstName = userUpdate.FirstName
+	}
+	if userUpdate.LastName != "" {
+		user.LastName = userUpdate.LastName
+	}
+	if userUpdate.Email != "" {
+		user.Email = userUpdate.Email
+	}
+	user.UpdatedAt = time.Now()
+
+	query := `
+		UPDATE users
+		SET first_name = $1, last_name = $2, email = $3, updated_at = $4
+		WHERE id = $5
+	`
+
+	_, err = u.db.Exec(ctx, query,
+		user.FirstName, user.LastName, user.Email, user.UpdatedAt, id)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
+func (u *userRepository) Delete(ctx context.Context, id string) error {
+	query := `DELETE FROM users WHERE id = $1`
+
+	commandTag, err := u.db.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return errors.New("user not found")
+	}
+
+	return nil
+}
