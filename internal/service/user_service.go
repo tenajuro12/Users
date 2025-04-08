@@ -40,3 +40,22 @@ func (s userService) GetUser(ctx context.Context, id string) (model.User, error)
 
 	return s.userRepo.GetByID(ctx, id)
 }
+
+func (s userService) UpdateUser(ctx context.Context, id string, userUpdate model.UserUpdate) (model.User, error) {
+	if id == "" {
+		return model.User{}, errors.New("id is required")
+	}
+
+	if err := s.validator.Struct(userUpdate); err != nil {
+		return model.User{}, err
+	}
+
+	return s.userRepo.Update(ctx, id, userUpdate)
+}
+func (s userService) DeleteUser(ctx context.Context, id string) error {
+	if id == "" {
+		return errors.New("id is required")
+	}
+
+	return s.userRepo.Delete(ctx, id)
+}
