@@ -1,9 +1,12 @@
-package cmd
+package main
 
 import (
 	"context"
+	"database/sql"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"log"
 	"net/http"
 	"os"
@@ -16,11 +19,34 @@ import (
 	"users/internal/service"
 )
 
+func runMigrations(dbURL string) error {
+	db, err := sql.Open("pgx", dbURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+
+	if err := goose.Up(db, "/migrations"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	if err := runMigrations(cfg.DatabaseURL); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
 	dbpool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
